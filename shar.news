@@ -1,0 +1,1887 @@
+Path: wugate!wucs1!uunet!bbn.com!rsalz
+From: rsalz@uunet.uu.net (Rich Salz)
+Newsgroups: comp.sources.unix
+Subject: v18i069:  SLS, a program like "ls -l" with more control
+Message-ID: <1627@papaya.bbn.com>
+Date: 27 Mar 89 18:04:16 GMT
+Lines: 1878
+Approved: rsalz@uunet.UU.NET
+
+Submitted-by: rich@cfisun.cfi.com (Rich Baughman)
+Posting-number: Volume 18, Issue 69
+Archive-name: sls
+
+Sls is a program designed to overcome the limitations of the standard UNIX
+ls(1) program, providing a more consistent interface to file inode
+information.  It is particularly designed for use by shell scripts to make
+obtaining information about files easier.  It uses printf(3)-style format
+strings to control the sorting and output of file information.
+
+
+#! /bin/sh
+# This is a shell archive.  Remove anything before this line, then unpack
+# it by saving it into a file and typing "sh file".  To overwrite existing
+# files, type "sh file -c".  You can also feed this as standard input via
+# unshar, or by typing "sh <file", e.g..  If this archive is complete, you
+# will see the following message at the end:
+#		"End of shell archive."
+# Contents:  README sls.1 sls.c Makefile
+PATH=/bin:/usr/bin:/usr/ucb ; export PATH
+if test -f README -a "${1}" != "-c" ; then 
+  echo shar: Will not over-write existing file \"README\"
+else
+echo shar: Extracting \"README\" \(3419 characters\)
+sed "s/^X//" >README <<'END_OF_README'
+XThis program provides a new shell interface to the stat(2) information
+Xnormally provided by the Unix ls(1) program.  This archive contains the
+Xfollowing files:
+X
+X    README	- this file
+X    sls.c	- source
+X    sls.1	- man page
+X    Makefile	- for make(1)
+X
+XType "make -f Makefile sls" to try it out; define $(BIN), $(MAN) and
+Xtype "make -f Makefile install" to install it.  WARNING: this has been
+Xcompiled and tested only on a Sun 3 under SunOS 3.5 and on a Sun 386i
+Xunder SunOS 4.0.  It has been run through lint and cleaned up.  The
+Xrest of this file is part of the man page (to stimulate your curiosity).
+X
+XNAME
+X     sls - list information about file(s) and directories
+X
+XSYNOPSIS
+X     sls [ -adlpsuLR ] filename ...
+X
+XDESCRIPTION
+X     Sls is a program designed to overcome the limitations of the
+X     standard  UNIX  ls(1)  program,  providing a more consistent
+X     interface to file inode  information.   It  is  particularly
+X     designed for use by shell scripts to make obtaining informa-
+X     tion about files easier.   It  uses  printf(3)-style  format
+X     strings  to  control the sorting and output of file informa-
+X     tion.
+X
+X     Advantages of sls over ls:
+X
+X     +  Allows complete specification of the  output  contents  -
+X        field (column) order, field widths, right/left justifica-
+X        tion, and zero-fill.
+X
+X     +  Allows complete specification of the sort order  indepen-
+X        dently  of  the  output options - output can be sorted on
+X        one or more fields.
+X
+X     +  Has consistent, user-definable file date formats  -  ls's
+X        are inconsistent and hard to parse (the seconds are never
+X        displayed, the year is shown  instead  of  the  time  for
+X        files more than 6 months old, etc.).
+X
+X     +  Has ``normalized'' output (no summary lines  or  changing
+X        formats).
+X
+X     +  Allows specification of delimiter char(s) -  the  charac-
+X        ters  between  fields  - which makes the output easier to
+X        parse in shell scripts.
+X
+X     +  Won't stat files  if  it's  not  necessary  (e.g.,  ``sls
+X        <dir>''); in the trivial (but common) case of calling sls
+X        on a directory (or list of directories) with no  options,
+X        it  will  simply  read the directory file and display the
+X        file names, sorted alphabetically.  For very large direc-
+X        tories, this is *much* faster than ls, and gets around com-
+X        mand line limitations of the various  login  shells  when
+X        using echo(1).
+X
+XEXAMPLES
+X     To produce the same output as ``ls -l'' (differs slightly from
+X     ``sls -l'', in date format and filename display):
+X
+X	 sls -u -p '%t%p %2l %-u %s %m %N'
+X
+X     To list the size (in kbytes), access and  modify  dates  (no
+X     times),  and file names (no pathname), sorted by size (larg-
+X     est first):
+X
+X	 sls -s %-s -p '%sk %a"%h %d 19%y" %m"%h %d 19%y" %nb' /u/mydir
+X
+X     How a shell script might get the last-modify date on a  file
+X     with sls, vs. ls (assume that SLS DATEFMT="%h %d %H:%M"; remember
+X     that you have no control over the time vs. year field with ls):
+X
+X	 FILEDATE=`ls -l file | awk '{print $5,$6,$7}'`
+X	 FILEDATE=`sls -p %m file`
+X
+XFeel free to send me bug and portability fixes, comments, and enhancements
+X(but watch out for "creeping featurism").  No flames, please - "You get
+Xwhat you pay for."
+X
+XEnjoy!
+X
+XRich Baughman		  rich@cfi.com OR ima!cfisun!rich
+XPrice Waterhouse/CFI      Waltham, MA  617-899-6500
+END_OF_README
+if test 3419 -ne `wc -c <README`; then
+    echo shar: \"README\" unpacked with wrong size!
+fi
+# end of overwriting check
+fi
+if test -f sls.1 -a "${1}" != "-c" ; then 
+  echo shar: Will not over-write existing file \"sls.1\"
+else
+echo shar: Extracting \"sls.1\" \(10693 characters\)
+sed "s/^X//" >sls.1 <<'END_OF_sls.1'
+X.TH SLS 1 "7 March 1989"
+X.SH NAME
+Xsls \- list information about file(s) and directories
+X.SH SYNOPSIS
+X.B sls
+X[
+X.B \-adlpsuLR
+X] \fIfilename\fR .\|.\|.
+X.SH DESCRIPTION
+X.I Sls
+Xis a program designed to overcome the limitations of the standard UNIX
+X.I ls(1)
+Xprogram, providing a more consistent interface to file inode information.
+XIt is particularly designed for use by shell scripts to make obtaining
+Xinformation about files easier.  It uses
+X.IR printf(3) -style
+Xformat strings to control the sorting and output of file information.
+X.LP
+XAdvantages of
+X.I sls
+Xover
+X.IR ls\^ :
+X.IP \(bu 3
+XAllows complete specification of the output contents \(em field (column) order,
+Xfield widths, right/left justification, and zero-fill.
+X.IP \(bu
+XAllows complete specification of the sort order independently of the output
+Xoptions \(em output can be sorted on one or more fields.
+X.IP \(bu
+XHas consistent, user-definable file date formats \(em
+X.IR ls 's
+Xare inconsistent and hard to parse (the seconds are never displayed, the year
+Xis shown instead of the time for files more than 6 months old, etc.).
+X.IP \(bu
+XHas ``normalized'' output (no summary lines or changing formats).
+X.IP \(bu
+XAllows specification of delimiter char(s) \(em the characters between fields
+X\(em which makes the output easier to parse in shell scripts.
+X.IP \(bu
+XWon't stat files if it's not necessary (e.g., ``\f(CWsls <dir>\fR''); in the
+Xtrivial (but common) case of calling
+X.I sls
+Xon a directory (or list of directories) with no options, it will simply
+Xread the directory file and display the file names, sorted alphabetically.
+XFor very large directories, this is \fImuch\fR faster than
+X.IR ls ,
+Xand gets around command line limitations of the various login shells when using
+X.IR echo(1) .
+X.SH OPTIONS
+X.TP
+X.B \-a
+XList all entries; in the absence of this option, entries whose
+Xnames begin with a `\fB.\fR' are not listed.
+X.TP
+X.B \-d
+XIf argument is a directory, list only its name (not its contents).
+X.TP
+X.BI \-p " outputstr"
+XSet the list of output fields according to the
+X.IR printf -style
+X.I outputstr
+X(see "SORT AND OUTPUT OPTIONS", below).
+X.TP
+X.B \-l
+XPerform long-form output according to default format (
+X.IR ls -style)
+Xor environment variable SLS_LONGFMT, if set.  This effectively sets the
+X.B \-p
+Xoption string to a predefined value, providing a convenient shorthand for
+Xa detailed listing.
+X.TP
+X.BI \-s " sortstr"
+XSets the sort order according to the
+X.IR printf -style
+X.I sortstr
+X(see "SORT AND OUTPUT OPTIONS", below).
+X.TP
+X.B \-u
+XSets the default display format for file dates to be the same as
+X.I ls
+X(``\f(CWMmm dd HH:MM\fR'' for newer files, ``\f(CWMmm dd yyyy\fR''
+Xfor older files).
+X.TP
+X.B \-L
+XIf argument is a symbolic link, list the file or directory the
+Xlink references rather than the link itself.
+X.TP
+X.B \-R
+XRecursively list subdirectories encountered.
+X.SH "SORT AND OUTPUT OPTIONS"
+X.LP
+XThe option strings supplied with the
+X.B \-s
+Xand
+X.B \-p
+Xoptions determine the sort order and output format of the listing.  The option
+Xstring is a single argument consisting of two types of objects:
+Xplain characters, which are simply copied to the output stream, and
+Xconversion specifications, each of which causes a particular member (or
+X.IR field\^ )
+Xof the
+X.IR stat\^(2)
+Xstructure to be sorted or printed.  (The correspondence is not quite one-to-one,
+Xbut it's close.)  Plain characters and field widths in the sort option string
+Xare ignored.
+X.LP
+XEach conversion specification is introduced by the character
+X.B %
+X(unless two appear together, in which case a single one is output).  After the
+X.BR % ,
+Xany of the following may appear in sequence:
+X.RS
+X.PP
+XAn optional `\-' flag: for the
+X.B \-p
+Xoption, it specifies left-adjustment for string-type fields (no effect on
+Xnumeric fields); for the
+X.B \-s
+Xoption, it means reverse the sort order on this field.
+X.PP
+XAn optional decimal digit string specifying a minimum
+X.I "field width"
+X.RB ( \-p
+Xoption only).  If the converted value has fewer characters than the field
+Xwidth, it will be padded on the left (or right, if the left-adjustment flag
+Xhas been given) to the field width.  If the converted value has more characters
+Xthan the field width, the field width will be ignored.  If the digit string
+Xhas a leading ``0'', numeric-type fields will be zero-filled on the left to
+Xthe width of the field.
+X.PP
+XA (required) flag character, which results in the conversion of a field from the
+X.I stat
+Xstructure for each file.  Some
+Xflag characters may be followed by optional modifier character(s).  Each flag
+Xcharacter has a default field width and format.  The flag characters and their
+Xmeanings are:
+X.TP 5
+X.PD 0
+X.B a
+Xlast access date.  This can be followed by a quoted date format string
+X(see "DATE FORMAT STRINGS", below).  If no date format string is supplied, the
+Xdefault format shows the time \fIand\fR year; this can be overridden by setting
+Xthe SLS_DATEFMT environment variable to a suitable date format string.
+X.TP
+X.B b
+Xnumber of allocated (512-byte) blocks; optionally followed by one of
+X.B mkc
+Xto specify output in \fBm\fRegabytes, \fBk\fRilobytes, or \fBc\fRharacters (the
+Xdefault).
+X.TP
+X.B c
+Xinode change date.  This can be followed by a quoted date format string
+X(see "DATE FORMAT STRINGS", below).  If no date format string is supplied, the
+Xdefault format shows the time \fIand\fR year; this can be overridden by setting
+Xthe SLS_DATEFMT environment variable to a suitable date format string.
+X.TP
+X.B d
+Xdevice number the inode resides on.
+X.TP
+X.B g
+Xascii group name of the owner of the file.
+X.TP
+X.B G
+Xnumeric group number of the owner of the file.
+X.TP
+X.B i
+Xinode number of the file.
+X.TP
+X.B k
+Xoptimal file system block size.
+X.TP
+X.B l
+Xnumber of hard links.
+X.TP
+X.B m
+Xlast modify date.  This can be followed by a quoted date format string
+X(see "DATE FORMAT STRINGS", below).  If no date format string is supplied, the
+Xdefault format shows the time \fIand\fR year; this can be overridden by setting
+Xthe SLS_DATEFMT environment variable to a suitable date format string.
+X.TP
+X.B n
+Xfile name; optionally followed by one or more of
+X.BR abs :
+X.B a
+Xto specify ascii output of non-printing chars;
+X.B b
+Xto specify basename only (i.e., file name w/o leading directory path, if any);
+Xand
+X.B s
+Xto specify a filetype suffix \(em this marks directories with a trailing slash
+X(\fB/\fR), executable files with a trailing asterisk (\fB*\fR), symbolic links
+Xwith a trailing at-sign (\fB@\fR), and 
+X.SM AF_UNIX
+Xdomain sockets with a trailing equals sign (\fB=\fR).
+X.TP
+X.B N
+Xfile name, with symbolic links' linked-to file name shown as ``\-> name''.
+X.TP
+X.B p
+Xascii permissions (same as in
+X.IR ls\^ ).
+X.TP
+X.B P
+Xoctal permissions.
+X.TP
+X.B r
+Xdevice number that the file resides on.
+X.TP
+X.B s
+Xfile size; optionally followed by one of
+X.B mkc
+Xto specify output in \fBm\fRegabytes, \fBk\fRilobytes, or \fBc\fRharacters
+X(the default).
+X.TP
+X.B t
+Xfile type (same as in
+X.IR ls\^ ).
+X.TP
+X.B u
+Xascii user name of the owner of the file.
+X.TP
+X.B U
+Xnumeric user id of the owner of the file.
+X.RE
+X.PD
+X.SH DATE FORMAT STRINGS
+X.LP
+XThe
+X.BR a ,
+X.BR c ,
+Xand
+X.B m
+Xflag characters use a default format of \f(CWMmm dd yyyy HH:MM\fR
+X(``\f(CW%h %d 19%y %H:%M\fR'').  This can be changed by setting the SLS_DATEFMT
+Xenvironment variable to a suitable date format string; by specifying the
+X.B \-u
+Xcommand line option, which requests
+X.IR ls -style
+Xdates; or by following the flag character with a quoted format string of the
+Xtype used by
+X.IR date(1)
+X(with several extensions; see below).  (Note that either single or double quotes
+X.I must
+Xdelimit the date format string in the
+X.B \-p
+Xoption string, so use your shell's particular syntax for embedded quotes.)
+X.LP
+XThe date format string may contain plain characters, which are copied to the
+Xoutput, or any of the following format modifier characters (preceded by a `%'):
+X.RS
+X.PD 0
+X.TP
+X.B %
+Xprint a percent sign.
+X.TP
+X.B a
+Xprint abbreviated weekday (Sun to Sat).
+X.TP
+X.B d
+Xprint day of month (01 to 31).
+X.TP
+X.B h
+Xprint abbreviated month (Jan to Dec).
+X.TP
+X.B j
+Xprint julian date (001 to 366).
+X.TP
+X.B m
+Xprint month of year (01 to 12).
+X.TP
+X.B n
+Xprint a newline.
+X.TP
+X.B r
+Xprint time in AM/PM notation (``HH:MM:SS ?M'').
+X.TP
+X.B t
+Xprint a tab.
+X.TP
+X.B w
+Xprint day of week (0 to 6) (0=Sunday).
+X.TP
+X.B x
+Xprint date in system format (number of seconds since the epoch).
+X.TP
+X.B y
+Xprint last 2 digits of year (00 to 99).
+X.TP
+X.B D
+Xprint date as mm/dd/yy.
+X.TP
+X.B E
+Xprint day of month with no padding for single-digit dates.
+X.TP
+X.B F
+Xprint full month (January to December).
+X.TP
+X.B H
+Xprint hour (00 to 23).
+X.TP
+X.B M
+Xprint minute (00 to 59).
+X.TP
+X.B S
+Xprint second (00 to 59).
+X.TP
+X.B T
+Xprint time as HH:MM:SS.
+X.TP
+X.B W
+Xprint full weekday (Sunday to Saturday).
+X.TP
+X.B X
+Xprint date in system format, using the number of days only (divides seconds
+Xby 86,400).
+X.PD
+X.RE
+X.SH EXAMPLES
+X.LP
+XTo produce the same output as ``ls \-l'':
+X.PP
+X\f(CWsls \-u \-p '%t%p %2l %-u %s %m %N'\fR
+X.LP
+XTo list the size (in kbytes), access and modify dates (no times), and file names
+X(no pathname), sorted by size (largest first):
+X.PP
+X\f(CWsls \-s %-s \-p '%sk  %a"%h %d 19%y"  %m"%h %d 19%y"  %nb' /usr/mydir\fR
+X.LP
+XHow a shell script might get the last-modify date on a file with
+X.I sls
+Xvs.
+X.I ls
+X(assume that \f(CWSLS_DATEFMT="%h %d %H:%M"\fR; remember that you have no
+Xcontrol over the time vs. year field with
+X.IR ls ):
+X.PP
+X\f(CWFILEDATE=`ls \-l file | awk '{print $5,$6,$7}'`\fR
+X.br
+X\f(CWFILEDATE=`sls \-p %m file`\fR
+X.SH FILES
+X/etc/passwd 	to get user names for \fB%u\fR output format flag.
+X.br
+X/etc/group 	to get group names for \fB%g\fR output format flag.
+X.SH BUGS
+X.LP
+XIt is impossible to distinguish between two files with the same name in two
+Xdifferent directories with the
+X.B %nb
+Xoutput format flag.
+X.LP
+XThere are several features of the ``standardized output'' nature of
+X.I sls
+Xthat are incompatible with
+X.IR ls ,
+Xand may cause some initial confusion; these are mentioned below.
+X.LP
+XThe default alignment for string-valued fields (right-justified) does not match
+X.IR ls ,
+Xbut is consistent with the C library function
+X.I printf
+X(which uses the ``\-'' option flag to specify left-justification).
+X.LP
+X.I sls
+Xdoes not automatically eliminate the directory part of the file name in the
+Xlisting when supplied with a single directory name argument; the user must
+Xexplicitly request that with the
+X.B %nb
+Xoutput format flag.
+X.LP
+XThe symbolic link notation ``linkname \-> name'' that
+X.I ls
+Xautomatically provides with
+X.B \-l
+Xoutput must also be explicitly requested by the user with the
+X.B %N
+Xoutput format flag.
+X.LP
+X.I Sls
+Xhas no multi-column output capability.
+X.LP
+XThe default format for dates in
+X.I sls
+Xdisplays both the time and year, resulting in wider output (see ``DATE
+XFORMAT STRINGS'' section for information on overriding this default).
+END_OF_sls.1
+if test 10693 -ne `wc -c <sls.1`; then
+    echo shar: \"sls.1\" unpacked with wrong size!
+fi
+# end of overwriting check
+fi
+if test -f sls.c -a "${1}" != "-c" ; then 
+  echo shar: Will not over-write existing file \"sls.c\"
+else
+echo shar: Extracting \"sls.c\" \(34005 characters\)
+sed "s/^X//" >sls.c <<'END_OF_sls.c'
+X/*
+X * "Super" ls program.  Allows complete specification of output contents:
+X * field order, width, format, and sort order.
+X *
+X * Options:
+X *   -a		show all files (includes '.' files)
+X *   -d		show directories in arg list as files
+X *   -l		long listing (uses $SLS_LONGFMT if set, or ls style)
+X *   -L		follow symbolic links (show stat of pointed-to file)
+X *   -p "ostr"	output key string
+X *   -R		recursively list subdirectories
+X *   -s "sstr"	sort key string
+X *   -u		use ls-style date formatting (<6 mos. vs. >6 mos.)
+X *
+X * Uses environment vbl SLS_DATEFMT as default format string for dates, if
+X * supplied.
+X */
+X
+X#include <stdio.h>
+X#include <string.h>
+X#include <ctype.h>
+X#include <pwd.h>
+X#include <grp.h>
+X#include <time.h>
+X#include <sys/types.h>
+X#include <sys/stat.h>
+X#include <sys/dir.h>
+X
+X#define ISEXEC(m)	(m & (S_IEXEC|(S_IEXEC>>3)|(S_IEXEC>>6)))
+X#define MAXUIDS		200	/* max #of user names from passwd file */
+X#define MAXGIDS		100	/* max #of group names from group file */
+X
+X    /* defines for sort/print option strings (preceded by a '%'); keys can
+X     * have field widths; leading '-' indicates left-justify (string fields)
+X     * or reverse order if it is a sort key; leading '0' indicates zero-fill
+X     * (numeric fields) */
+X#define F_ADATE		'a'	/* access date (optional fmtdate string) */
+X#define F_BLOCKS	'b'	/* #allocated (512-byte) blocks (+ m,k,c|b) */
+X#define F_CDATE		'c'	/* inode change date */
+X#define F_DEV		'd'	/* device number inode resides on */
+X#define F_GROUPA	'g'	/* ascii group name (from group file) */
+X#define F_GROUPN	'G'	/* numeric group id */
+X#define F_INODE		'i'	/* inode number */
+X#define F_BLKSIZE	'k'	/* optimal file system block size */
+X#define F_NLINKS	'l'	/* number of hard links */
+X#define F_MDATE		'm'	/* modify date (optional fmtdate string) */
+X#define F_NAME		'n'	/* file name (+ b=basename,a=ascii,s=suffix) */
+X#define F_NAMEL		'N'	/* file name with symbolic links shown */
+X#define F_PERMA		'p'	/* ascii permissions */
+X#define F_PERMO		'P'	/* octal permissions */
+X#define F_RDEV		'r'	/* device number file resides on */
+X#define F_SIZE		's'	/* file size in bytes (mods: m,k,c|b) */
+X#define F_TYPE		't'	/* file type (coded like 'ls') */
+X#define F_USERA		'u'	/* ascii user name (from passwd file) */
+X#define F_USERN		'U'	/* numeric user id */
+X
+Xtypedef struct {		/* for saving name only */
+X    char        *f_name;
+X    } FILESTAT;
+X
+Xtypedef struct {		/* for saving name and stat info */
+X    char        *f_name;
+X    struct stat  f_stat;
+X    } SFILESTAT;
+X
+XFILESTAT *Pfiles;	/* list of files (no stat buf) to sort/print */
+Xint       Npfiles;	/* number of files in Pfiles */
+X
+XSFILESTAT *Psfiles;	/* list of files to sort/print */
+Xint       Npsfiles;	/* number of files in Psfiles */
+X
+X    /* global options */
+Xint    Follow_links;	/* follow symbolic links */
+Xint    Recursive;	/* follow subdirectories */
+Xint    Stat_dirs;	/* show directories as files */
+Xint    All_files;	/* include '.' files in listing */
+Xint    Use_less;	/* use ls-style date format */
+Xint    Dostat;		/* =0 if stat(2) system call not needed */
+Xtime_t Sixmosago;	/* system date for 6 mos. ago (for default dates) */
+Xchar  *Defdatefmt;	/* default format for dates */
+Xchar  *Sortopt;
+Xchar  *Printopt;
+X
+Xstatic char  *fmtdate(), *aperms(), *getfmtstr(), *showname(), *copystr();
+Xstatic char  *getpwname(), *getgrname();
+Xstatic int    sortsfile(), sortfile();
+Xstatic time_t getsixmosago();		/* for emulating 'ls' date silliness */
+X
+Xextern char  *getenv(), *malloc(), *realloc();
+Xextern int    errno;
+Xextern time_t time();
+X
+X/******************************************************************************/
+X
+Xmain (ac, av)
+X    int            ac;
+X    char          *av[];
+X{
+X    register char *pav, *ptmp, *longfmt;
+X    register int   i, basename, gotfilearg;
+X
+X    gotfilearg = 0;
+X    Sortopt = "%n";
+X    Printopt = "%n";
+X    Defdatefmt = "%h %d 19%y %H:%M";
+X    if ((pav = getenv("SLS_DATEFMT")) != NULL && strlen(pav) > 0)
+X	Defdatefmt = copystr (pav);
+X    longfmt = "%t%p %2l %-u %s %m %n";
+X    if ((pav = getenv("SLS_LONGFMT")) != NULL && strlen(pav) > 0)
+X	longfmt = copystr (pav);
+X    Use_less = Follow_links = Recursive = Stat_dirs = All_files = 0;
+X    Dostat = 0;
+X    Sixmosago = getsixmosago ();	/* in case Use_less==1 */
+X
+X    while (--ac > 0)
+X    {
+X	pav = *++av;
+X	if (*pav == '-')
+X	{
+X	    while (*++pav) switch (*pav)
+X	    {
+X	    case 'a':
+X		All_files = 1;
+X		break;
+X	    case 'd':
+X		Stat_dirs = 1;
+X		Dostat = 1;
+X		break;
+X	    case 'l':
+X		Printopt = longfmt;
+X		if (strcmp(Printopt,"%n") != 0 && strcmp(Printopt,"%nb") != 0)
+X		    Dostat = 1;
+X		break;
+X	    case 'L':
+X		Follow_links = 1;
+X		Dostat = 1;
+X		break;
+X	    case 'p':
+X		if (--ac == 0)
+X		{
+X		    fprintf (stderr, "? -p requires an argument\n");
+X		    exit (1);
+X		}
+X		Printopt = *++av;
+X		pav = "-";	/* so while() quits */
+X		if (strcmp(Printopt,"%n") != 0 && strcmp(Printopt,"%nb") != 0)
+X		    Dostat = 1;
+X		break;
+X	    case 'R':
+X		Recursive = 1;
+X		Dostat = 1;
+X		break;
+X	    case 's':
+X		if (--ac == 0)
+X		{
+X		    fprintf (stderr, "? -s requires an argument\n");
+X		    exit (1);
+X		}
+X		Sortopt = *++av;
+X		pav = "-";	/* so while() quits */
+X		Dostat = 1;
+X		break;
+X	    case 'u':		/* the "use-l(es)s format" option */
+X		Use_less = 1;
+X		break;
+X	    default:
+X		fprintf (stderr, "?unknown option '%s'\n", pav);
+X		exit (1);
+X	    }
+X	}
+X	else
+X	{
+X	    dofile (pav, 1);
+X	    ++gotfilearg;
+X	}
+X    }
+X
+X    if (!gotfilearg)
+X	dofile ("", 1);
+X
+X    if (!Dostat)
+X    {
+X	qsort ((char *)Pfiles, Npfiles, sizeof(*Pfiles), sortfile);
+X	basename = (strcmp(Printopt,"%nb") == 0);
+X	for (i=0; i<Npfiles; ++i)
+X	{
+X	    if (basename)
+X	    {
+X		ptmp = (Pfiles+i)->f_name;
+X		if ((pav = strrchr (ptmp, '/')) == NULL)
+X		    pav = ptmp;
+X		else
+X		    ++pav;
+X		puts (pav);
+X	    }
+X	    else
+X		puts ((Pfiles+i)->f_name);
+X	}
+X	exit (0);
+X    }
+X
+X    if (strlen(Sortopt) > 0)
+X	qsort ((char *)Psfiles, Npsfiles, sizeof(*Psfiles), sortsfile);
+X
+X    for (i=0; i<Npsfiles; ++i)
+X	display (Psfiles+i);
+X    
+X    exit (0);
+X
+X}  /* main */
+X
+X/******************************************************************************/
+X
+Xdofile (fname, cmdarg)
+X    register char  *fname;	/* name of file to stat and list */
+X    int             cmdarg;	/* =1 if fname was command line arg */
+X{  /* check if file should be displayed (read contents if a directory) */
+X    struct stat     sbuf;
+X    register char  *pbase;	/* ptr to basename part of fname */
+X
+X    if ((pbase = strrchr (fname, '/')) == (char *)NULL)
+X	pbase = fname;
+X    else
+X	++pbase;
+X
+X	/* skip files that start with '.' unless -a */
+X    if (*pbase == '.' && !All_files && !cmdarg)
+X	return;
+X    
+X    if (!Dostat && !cmdarg)
+X    {
+X	selectf (fname);	/* short version - file name only */
+X	return;
+X    }
+X
+X    if ((!Follow_links && lstat (fname, &sbuf) != 0)
+X	|| (Follow_links && stat (fname, &sbuf) != 0))
+X    {
+X	fprintf (stderr, "?unable to stat file '%s' (errno=%d)\n",
+X	    fname, errno);
+X	return;
+X    }
+X
+X    if ((sbuf.st_mode&S_IFMT) == S_IFDIR)	/* it's a directory */
+X    {
+X	if (!cmdarg
+X	    && (strcmp (pbase, ".") == 0 || strcmp (pbase, "..") == 0))
+X	{  /* don't show these unless -a given */
+X	    if (All_files)
+X		selectfs (fname, &sbuf);
+X	    return;
+X	}
+X
+X	if (Stat_dirs || (!cmdarg && !Recursive))
+X	    selectfs (fname, &sbuf);
+X	else
+X	    dirread (fname);
+X	return;
+X    }
+X
+X    if (Dostat)
+X	selectfs (fname, &sbuf);
+X    else
+X	selectf (fname);
+X
+X}  /* dofile */
+X
+X/******************************************************************************/
+X
+Xdirread (dirname)
+X    char           *dirname;
+X{  /* read a directory and everything under it that's on the same device */
+X    register DIR   *dirp;		/* ptr to directory list */
+X    register struct direct  *dentp;	/* ptr to directory entry */
+X    register char  *pfname;
+X    register int    len;
+X    char            fname[512];		/* maximum pathname length */
+X
+X	/* open and read a directory */
+X    if ((dirp = opendir(dirname)) == NULL)
+X    {
+X	fprintf (stderr, "?unable to open directory '%s' (errno=%d)\n",
+X	    dirname, errno);
+X	return;
+X    }
+X    strcpy (fname, dirname);
+X    len = strlen(fname);
+X    pfname = &fname[len];		/* point to start of filename part */
+X    if (len > 0 && *(pfname-1) != '/')
+X    {  /* doesn't end with slash, so add it */
+X	strcat (fname, "/");
+X	++pfname;
+X	++len;
+X    }
+X
+X	/* loop through directory entries */
+X    for (dentp = readdir(dirp); dentp != NULL; dentp = readdir(dirp))
+X    {
+X	if (len + dentp->d_namlen >= sizeof(fname))
+X	{
+X	    *pfname = '\0';	/* so we don't see previous filename part */
+X	    fprintf (stderr, "?file name too long: '%s%s'\n",
+X		fname, dentp->d_name);
+X	    continue;
+X	}
+X	    /* add this file name to the directory path */
+X	strcpy (pfname, dentp->d_name);
+X	dofile (fname, 0);
+X    }
+X
+X    closedir (dirp);
+X
+X}  /* dirread */
+X
+X/******************************************************************************/
+X
+Xselectf (fname)
+X    register char *fname;
+X{  /* allocate space for this file name for sorting */
+X    FILESTAT     *pf;
+X    static int     maxpfiles=0;
+X    unsigned int   size;
+X
+X	/* check if need more space for FILESTAT ptrs */
+X    if (Npfiles == maxpfiles)
+X    {
+X	maxpfiles += 500;
+X	size = maxpfiles * sizeof(FILESTAT);
+X	if (Pfiles == (FILESTAT *) NULL)
+X	    Pfiles = (FILESTAT *) malloc (size);
+X	else
+X	    Pfiles = (FILESTAT *) realloc ((char *)Pfiles, size);
+X	if (Pfiles == (FILESTAT *) NULL)
+X	{
+X	    fprintf (stderr, "?malloc failed (errno=%d) on stat of '%s'\n",
+X		errno, fname);
+X	    exit (1);
+X	}
+X    }
+X
+X    pf = Pfiles + Npfiles;
+X    pf->f_name = copystr (fname);
+X    ++Npfiles;
+X
+X}  /* selectf */
+X
+X/******************************************************************************/
+X
+Xstatic int sortfile (pf1, pf2)
+X    register FILESTAT     *pf1, *pf2;
+X{  /* qsort comparison routine */
+X
+X    return (strcmp (pf1->f_name, pf2->f_name));
+X
+X}  /* sortfile */
+X
+X/******************************************************************************/
+X
+Xselectfs (fname, psbuf)
+X    register char *fname;
+X    register struct stat  *psbuf;
+X{  /* allocate a struct for this file for sorting */
+X    SFILESTAT      *pf;
+X    static int     maxpfiles=0;
+X    unsigned int   size;
+X
+X	/* check if need more space for SFILESTAT ptrs */
+X    if (Npsfiles == maxpfiles)
+X    {
+X	maxpfiles += 100;
+X	size = maxpfiles * sizeof(SFILESTAT);
+X	if (Psfiles == (SFILESTAT *) NULL)
+X	    Psfiles = (SFILESTAT *) malloc (size);
+X	else
+X	    Psfiles = (SFILESTAT *) realloc ((char *)Psfiles, size);
+X	if (Psfiles == (SFILESTAT *) NULL)
+X	{
+X	    fprintf (stderr, "?malloc failed (errno=%d) on stat of '%s'\n",
+X		errno, fname);
+X	    exit (1);
+X	}
+X    }
+X
+X    pf = Psfiles + Npsfiles;
+X    pf->f_name = copystr (fname);
+X    pf->f_stat = *psbuf;	/* copies entire struct */
+X    ++Npsfiles;
+X
+X}  /* selectfs */
+X
+X/******************************************************************************/
+X
+Xstatic int sortsfile (pf1, pf2)
+X    register SFILESTAT     *pf1, *pf2;
+X{  /* qsort comparison routine */
+X    register char         *ps, *p1, *p2, *ptmp;
+X    register struct stat  *psbuf1, *psbuf2;
+X    long                   l1, l2;
+X    int                    i, reverse, ascii, basen;
+X    char                   tbuf1[200], tbuf2[200];
+X
+X    psbuf1 = &(pf1->f_stat);
+X    psbuf2 = &(pf2->f_stat);
+X    for (ps=Sortopt; *ps; ++ps)
+X    {
+X	if (*ps++ != '%')
+X	{
+X	    fprintf (stderr, "?unknown sort key at '%.6s'...\n", ps);
+X	    exit (1);
+X	}
+X
+X	    /* check for '-' (for reverse order sort) */
+X	reverse = 1;		/* NOT a flag - multiplied by strcmp() result */
+X	if (*ps == '-')
+X	{
+X	    reverse = -1;
+X	    ++ps;
+X	}
+X
+X	l1 = l2 = 0;
+X	p1 = p2 = (char *)NULL;
+X	switch (*ps)
+X	{
+X	case F_TYPE:
+X	    switch (psbuf1->st_mode & S_IFMT)
+X	    {
+X	    case S_IFREG:	p1 = "-"; break;
+X	    case S_IFDIR:	p1 = "d"; break;
+X	    case S_IFCHR:	p1 = "c"; break;
+X	    case S_IFBLK:	p1 = "b"; break;
+X	    case S_IFLNK:	p1 = "l"; break;
+X	    case S_IFSOCK:	p1 = "s"; break;
+X	    case S_IFIFO:	p1 = "p"; break;
+X	    default:		p1 = "?"; break;
+X	    }
+X	    switch (psbuf2->st_mode & S_IFMT)
+X	    {
+X	    case S_IFREG:	p2 = "-"; break;
+X	    case S_IFDIR:	p2 = "d"; break;
+X	    case S_IFCHR:	p2 = "c"; break;
+X	    case S_IFBLK:	p2 = "b"; break;
+X	    case S_IFLNK:	p2 = "l"; break;
+X	    case S_IFSOCK:	p2 = "s"; break;
+X	    case S_IFIFO:	p2 = "p"; break;
+X	    default:		p2 = "?"; break;
+X	    }
+X	    break;
+X	case F_PERMA:
+X	    p1 = aperms ((int)psbuf1->st_mode, ps+1, &i);
+X	    p2 = aperms ((int)psbuf2->st_mode, ps+1, &i);
+X	    ps += i;
+X	    break;
+X	case F_PERMO:
+X	    l1 = ((psbuf1->st_mode) & (~S_IFMT));
+X	    l2 = ((psbuf2->st_mode) & (~S_IFMT));
+X	    break;
+X	case F_NLINKS:
+X	    l1 = psbuf1->st_nlink;
+X	    l2 = psbuf2->st_nlink;
+X	    break;
+X	case F_INODE:
+X	    l1 = psbuf1->st_ino;
+X	    l2 = psbuf2->st_ino;
+X	    break;
+X	case F_DEV:
+X	    l1 = psbuf1->st_dev;
+X	    l2 = psbuf2->st_dev;
+X	    break;
+X	case F_RDEV:
+X	    l1 = psbuf1->st_rdev;
+X	    l2 = psbuf2->st_rdev;
+X	    break;
+X	case F_USERA:
+X	    l1 = psbuf1->st_uid;
+X	    l2 = psbuf2->st_uid;
+X	    if ((ptmp = getpwname((int)l1)) == (char *)NULL)
+X		break;
+X	    strcpy (tbuf1, ptmp);
+X	    if ((ptmp = getpwname((int)l2)) == (char *)NULL)
+X		break;
+X	    strcpy (tbuf2, ptmp);
+X	    p1 = tbuf1;
+X	    p2 = tbuf2;
+X	    break;
+X	case F_USERN:
+X	    l1 = psbuf1->st_uid;
+X	    l2 = psbuf2->st_uid;
+X	    break;
+X	case F_GROUPA:
+X	    l1 = psbuf1->st_gid;
+X	    l2 = psbuf2->st_gid;
+X	    if ((ptmp = getgrname((int)l1)) == (char *)NULL)
+X		break;
+X	    strcpy (tbuf1, ptmp);
+X	    if ((ptmp = getgrname((int)l2)) == (char *)NULL)
+X		break;
+X	    strcpy (tbuf2, ptmp);
+X	    p1 = tbuf1;
+X	    p2 = tbuf2;
+X	    break;
+X	case F_GROUPN:
+X	    l1 = psbuf1->st_gid;
+X	    l2 = psbuf2->st_gid;
+X	    break;
+X	case F_SIZE:
+X	    l1 = psbuf1->st_size;
+X	    l2 = psbuf2->st_size;
+X	    break;
+X	case F_BLOCKS:
+X	    l1 = psbuf1->st_blocks;
+X	    l2 = psbuf2->st_blocks;
+X	    break;
+X	case F_BLKSIZE:
+X	    l1 = psbuf1->st_blksize;
+X	    l2 = psbuf2->st_blksize;
+X	    break;
+X	case F_MDATE:
+X	    l1 = psbuf1->st_mtime;
+X	    l2 = psbuf2->st_mtime;
+X	    break;
+X	case F_ADATE:
+X	    l1 = psbuf1->st_atime;
+X	    l2 = psbuf2->st_atime;
+X	    break;
+X	case F_CDATE:
+X	    l1 = psbuf1->st_ctime;
+X	    l2 = psbuf2->st_ctime;
+X	    break;
+X	case F_NAME:
+X	case F_NAMEL:
+X	    ascii = basen = 0;
+X	    while (*(ps+1) && strchr("abs",*(ps+1)) != NULL)
+X	    {
+X		++ps;
+X		if (*ps == 'a')
+X		    ascii = 1;
+X		else if (*ps == 'b')
+X		    basen = 1;
+X		else if (*ps == 's')	/* ignored for sort purposes */
+X		    ;
+X	    }
+X	    if (basen)	/* basename only */
+X	    {
+X		if ((p1 = strrchr (pf1->f_name, '/')) == (char *)NULL)
+X		    p1 = pf1->f_name;
+X		else
+X		    ++p1;
+X		if ((p2 = strrchr (pf2->f_name, '/')) == (char *)NULL)
+X		    p2 = pf2->f_name;
+X		else
+X		    ++p2;
+X	    }
+X	    else
+X	    {
+X		p1 = pf1->f_name;
+X		p2 = pf2->f_name;
+X	    }
+X	    if (ascii)	/* show non-printing chars */
+X	    {
+X		strcpy (tbuf1, showname (p1));
+X		strcpy (tbuf2, showname (p2));
+X		p1 = tbuf1;
+X		p2 = tbuf2;
+X	    }
+X	    break;
+X	default:
+X	    fprintf (stderr, "?unknown sort option char '%%%c'\n", *ps);
+X	    continue;
+X	}  /* switch */
+X
+X	    /* now check for type of comparison for this field */
+X	if (p1 != (char *)NULL)
+X	{  /* string comparison */
+X	    i = strcmp (p1, p2);
+X	    if (i == 0)
+X		continue;	/* need to go to next sort field */
+X	    else
+X		return (reverse*i);
+X	}
+X	else
+X	{  /* numeric comparison */
+X	    if (l1 == l2)
+X		continue;	/* need to go to next sort field */
+X	    else if (l1 > l2)
+X		return (reverse);
+X	    else		/* l1 < l2 */
+X		return (-reverse);
+X	}
+X    }  /* loop through sort options string */
+X
+X    return (strcmp (pf1->f_name, pf2->f_name));
+X
+X}  /* sortsfile */
+X
+X/******************************************************************************/
+X
+Xdisplay (pf)
+X    SFILESTAT       *pf;
+X{  /* display info about a file */
+X    register struct stat   *psbuf;
+X    register char  *popt, *pobuf, *fmtstr;
+X    register int    n, fwid;
+X    long            l;
+X    int             i, zerofill, leftjust, ascii, basen, suffix;
+X    char            obuf[200], lname[200], *ptmp, *pc, *fname, c;
+X
+X    fname = pf->f_name;
+X    psbuf = &(pf->f_stat);
+X    pobuf = obuf;
+X    for (popt=Printopt; *popt; ++popt)
+X    {
+X	if (*popt != '%')
+X	{
+X	    *pobuf++ = *popt;
+X	    continue;
+X	}
+X	if (*(popt+1) == '%')
+X	{
+X	    *pobuf++ = *popt++;
+X	    continue;
+X	}
+X
+X	    /* check for optional field width and '-' (for left justify) */
+X	fwid = zerofill = leftjust = 0;
+X	if (*(popt+1) == '-')
+X	{
+X	    leftjust = 1;
+X	    ++popt;
+X	}
+X	if (isdigit (*++popt))
+X	{
+X	    zerofill = (*popt == '0');
+X	    for (fwid=0; isdigit(*popt); ++popt)
+X		fwid = fwid*10 + *popt - '0';
+X	}
+X
+X	c = *popt;
+X	switch (c)
+X	{
+X	case F_TYPE:
+X	    switch (psbuf->st_mode & S_IFMT)
+X	    {
+X	    case S_IFREG:	ptmp = "-"; break;
+X	    case S_IFDIR:	ptmp = "d"; break;
+X	    case S_IFCHR:	ptmp = "c"; break;
+X	    case S_IFBLK:	ptmp = "b"; break;
+X	    case S_IFLNK:	ptmp = "l"; break;
+X	    case S_IFSOCK:	ptmp = "s"; break;
+X	    case S_IFIFO:	ptmp = "p"; break;
+X	    default:
+X		ptmp = "?";
+X		fprintf (stderr, "?unknown file type 0%o for file '%s'\n",
+X		    psbuf->st_mode & S_IFMT, fname);
+X		break;
+X	    }
+X	    if (fwid == 0)
+X	    {
+X		*pobuf++ = *ptmp;
+X		*pobuf = '\0';	/* so 'while' loop below exits */
+X	    }
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, ptmp);
+X	    }
+X	    break;
+X	case F_PERMA:
+X	    if (fwid == 0)
+X		strcpy (pobuf, aperms ((int)psbuf->st_mode, popt+1, &i));
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr,
+X		    aperms ((int)psbuf->st_mode, popt+1, &i));
+X	    }
+X	    popt += i;
+X	    break;
+X	case F_PERMO:
+X	    if (fwid == 0)
+X		fmtstr = getfmtstr ('o', 3, 0, 1);
+X	    else
+X		fmtstr = getfmtstr ('o', fwid, leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_mode & (~S_IFMT));
+X	    break;
+X	case F_NLINKS:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:4), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_nlink);
+X	    break;
+X	case F_INODE:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:6), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_ino);
+X	    break;
+X	case F_DEV:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:6), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_dev);
+X	    break;
+X	case F_RDEV:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:6), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_rdev);
+X	    break;
+X	case F_USERA:
+X	    n = psbuf->st_uid;
+X	    if ((ptmp = getpwname(n)) == (char *)NULL)
+X	    {
+X		fmtstr = getfmtstr ('d', (fwid?fwid:8), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, n);
+X	    }
+X	    else
+X	    {
+X		if (fwid == 0)
+X		    fmtstr = getfmtstr ('s', 8, leftjust, 0);
+X		else
+X		    fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, ptmp);
+X	    }
+X	    break;
+X	case F_USERN:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:4), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_uid);
+X	    break;
+X	case F_GROUPA:
+X	    n = psbuf->st_gid;
+X	    if ((ptmp = getgrname(n)) == (char *)NULL)
+X	    {
+X		fmtstr = getfmtstr ('d', (fwid?fwid:8), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, psbuf->st_uid);
+X	    }
+X	    else
+X	    {
+X		if (fwid == 0)
+X		    fmtstr = getfmtstr ('s', 8, leftjust, 0);
+X		else
+X		    fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, ptmp);
+X	    }
+X	    break;
+X	case F_GROUPN:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:4), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_gid);
+X	    break;
+X	case F_SIZE:
+X	    l = (long) psbuf->st_size;
+X	    if (*(popt+1) == 'm')
+X	    {
+X		fmtstr = getfmtstr ('d', (fwid?fwid:3), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, (l+1048575)>>20);
+X		++popt;
+X	    }
+X	    else if (*(popt+1) == 'k')
+X	    {
+X		fmtstr = getfmtstr ('d', (fwid?fwid:6), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, (l+1023)>>10);
+X		++popt;
+X	    }
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('d', (fwid?fwid:9), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, l);
+X		if (*(popt+1) == 'c' || *(popt+1) == 'b')
+X		    ++popt;
+X	    }
+X	    break;
+X	case F_BLOCKS:
+X	    l = (long) psbuf->st_blocks;	/* 512-byte blocks allocated */
+X	    if (*(popt+1) == 'm')
+X	    {
+X		l = (l+511) >> 11;	/* (* 512 / 1048576) = divide by 2048 */
+X		fmtstr = getfmtstr ('d', (fwid?fwid:3), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, l);
+X		++popt;
+X	    }
+X	    else if (*(popt+1) == 'k')
+X	    {
+X		l = (l+1) >> 1;		/* (* 512 / 1024) = divide by 2 */
+X		fmtstr = getfmtstr ('d', (fwid?fwid:6), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, l);
+X		++popt;
+X	    }
+X	    else if (*(popt+1) == 'c' || *(popt+1) == 'b')
+X	    {
+X		l <<= 9;		/* multiply by 512 */
+X		fmtstr = getfmtstr ('d', (fwid?fwid:9), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, l);
+X		++popt;
+X	    }
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('d', (fwid?fwid:5), leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, l);
+X	    }
+X	    break;
+X	case F_BLKSIZE:
+X	    fmtstr = getfmtstr ('d', (fwid?fwid:4), leftjust, zerofill);
+X	    sprintf (pobuf, fmtstr, psbuf->st_blksize);
+X	    break;
+X	case F_MDATE:
+X	    if (fwid == 0)
+X		strcpy (pobuf, fmtdate (psbuf->st_mtime, popt+1, &i));
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, fmtdate (psbuf->st_mtime, popt+1, &i));
+X	    }
+X	    popt += i;
+X	    break;
+X	case F_ADATE:
+X	    if (fwid == 0)
+X		strcpy (pobuf, fmtdate (psbuf->st_atime, popt+1, &i));
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, fmtdate (psbuf->st_atime, popt+1, &i));
+X	    }
+X	    popt += i;
+X	    break;
+X	case F_CDATE:
+X	    if (fwid == 0)
+X		strcpy (pobuf, fmtdate (psbuf->st_ctime, popt+1, &i));
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, fmtdate (psbuf->st_ctime, popt+1, &i));
+X	    }
+X	    popt += i;
+X	    break;
+X	case F_NAME:
+X	case F_NAMEL:
+X	    ascii = basen = suffix = 0;
+X	    while (*(popt+1) && strchr ("abs", *(popt+1)) != NULL)
+X	    {
+X		++popt;
+X		if (*popt == 'a')
+X		    ascii = 1;
+X		else if (*popt == 'b')
+X		    basen = 1;
+X		else if (*popt == 's')
+X		    suffix = 1;
+X	    }
+X	    if (basen)	/* basename only */
+X	    {
+X		if ((ptmp = strrchr (fname, '/')) == (char *)NULL)
+X		    ptmp = fname;
+X		else
+X		    ++ptmp;
+X	    }
+X	    else
+X		ptmp = fname;
+X	    if (ascii)	/* show non-printing chars */
+X		ptmp = showname (ptmp);
+X	    pc = "";
+X	    if (suffix)
+X	    {	/* add trailing type char for some files */
+X		switch (psbuf->st_mode & S_IFMT)
+X		{
+X		case S_IFDIR:	pc = "/"; break;
+X		case S_IFLNK:	pc = "@"; break;
+X		case S_IFSOCK:	pc = "="; break;
+X		default:
+X		    if (ISEXEC(psbuf->st_mode))
+X			pc = "*";
+X		    break;
+X		}
+X	    }
+X	    if (fwid == 0)
+X	    {
+X		strcpy (pobuf, ptmp);
+X		if (c == F_NAMEL && !suffix)
+X		{	/* add linked-to filename if a symlink */
+X		    if ((psbuf->st_mode & S_IFMT) == S_IFLNK
+X			&& (n = readlink (fname, lname, sizeof(lname))) >= 0)
+X		    {
+X			lname[n] = '\0';
+X			strcat (pobuf, " -> ");
+X			strcat (pobuf, lname);
+X		    }
+X		}
+X	    }
+X	    else
+X	    {
+X		fmtstr = getfmtstr ('s', fwid, leftjust, zerofill);
+X		sprintf (pobuf, fmtstr, ptmp);
+X	    }
+X	    if (*pc)
+X	    {  /* add type-char to end of filename */
+X		for (ptmp=pobuf; *ptmp; ++ptmp)
+X		{
+X		    if (*ptmp == ' ')
+X		    {
+X			*ptmp = *pc;
+X			pc = "";
+X			break;
+X		    }
+X		}
+X		if (*pc)  /* didn't find a space to add it, so add it to end */
+X		    strcat (pobuf, pc);
+X	    }
+X	    break;
+X	default:
+X	    fprintf (stderr, "?unknown print option '%%%c'\n", *popt);
+X	    continue;
+X	}
+X
+X	    /* update output ptr */
+X	while (*pobuf)
+X	    ++pobuf;
+X
+X    }  /* loop through print options string */
+X
+X    *pobuf = '\0';
+X    puts (obuf);
+X
+X}  /* display */
+X
+X/******************************************************************************/
+X
+Xstatic char *getfmtstr (ftype, width, leftjust, zerofill)
+X    register char   ftype;	/* format type */
+X    register int    width;	/* field width */
+X    register int    leftjust;	/* =1 if left-justified wanted ('%-3s') */
+X    register int    zerofill;	/* =1 if zero-fill wanted ('%03d') */
+X{  /* build (user-specified) format string */
+X    register char  *pbuf;
+X    static char     buf[20];
+X
+X    pbuf = buf;
+X    *pbuf++ = '%';
+X    if (ftype == 's' && leftjust)
+X	*pbuf++ = '-';
+X    else if (ftype != 's' && zerofill)
+X	*pbuf++ = '0';
+X
+X	/* encode width here instead of sprintf - too much overhead */
+X    if (width > 99)
+X    {	/* hundred's digit */
+X	width %= 1000;		/* ensure a single digit for pathologic cases */
+X	*pbuf++ = width/100 + '0';
+X	width %= 100;
+X    }
+X    if (width > 9)
+X    {	/* tens digit */
+X	*pbuf++ = width/10 + '0';
+X	width %= 10;
+X    }
+X    *pbuf++ = width + '0';	/* ones digit */
+X    *pbuf++ = ftype;		/* the format char itself ('s', 'd', 'o') */
+X
+X    *pbuf++ = '\0';
+X    return (buf);
+X
+X}  /* getfmtstr */
+X
+X/******************************************************************************/
+X
+Xstatic char  *aperms (mode, poptstr, pnmod)
+X    register int   mode;	/* mode word from stat structure */
+X    char          *poptstr;	/* ptr to format string following %<char> */
+X    int           *pnmod;	/* #of chars "eaten" from format string */
+X{  /* return ascii representation of permission bits */
+X    static char    buf[20];
+X    register char *pbuf;
+X    register int   i;
+X
+X    *pnmod = 0;
+X    pbuf = buf;
+X	/* get perm bits for user, group, other */
+X    for (i=0; i<3; ++i)
+X    {
+X	*pbuf++ = ((mode & (S_IREAD>>(i*3))) ? 'r' : '-');
+X	*pbuf++ = ((mode & (S_IWRITE>>(i*3))) ? 'w' : '-');
+X	*pbuf = ((mode & (S_IEXEC>>(i*3))) ? 'x' : '-');
+X	if (i == 0 && (mode & S_ISUID))
+X	    *pbuf = (*pbuf == 'x' ? 's' : 'S');
+X	else if (i == 1 && (mode & S_ISGID))
+X	    *pbuf = (*pbuf == 'x' ? 's' : 'S');
+X	else if (i == 2 && (mode & S_ISVTX))
+X	    *pbuf = (*pbuf == 'x' ? 't' : 'T');
+X	++pbuf;
+X    }
+X    *pbuf = '\0';
+X
+X    if (*poptstr && strchr ("123456789", *poptstr) != NULL)
+X    {
+X	buf[0] = buf[*poptstr - '0'];
+X	buf[1] = '\0';
+X	*pnmod = 1;
+X    }
+X
+X    return (buf);
+X
+X}  /* aperms */
+X
+X/******************************************************************************/
+X
+Xstatic char *showname (fname)
+X    register char  *fname;
+X{  /* show non-printing chars in a filename as \ddd */
+X    static char     newname[200];
+X    register char  *pnew;
+X
+X    for (pnew=newname; *fname; ++fname,++pnew)
+X    {
+X	if (isprint(*pnew = *fname))
+X	    continue;
+X	sprintf (pnew, "\\%03o", *fname);
+X	pnew += strlen(pnew) - 1;
+X    }
+X    *pnew = '\0';
+X
+X    return (newname);
+X
+X}  /* showname */
+X
+X/******************************************************************************/
+X
+Xstatic char  *Wdays[] = {
+X    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+Xstatic char  *FWdays[] = {
+X    "Sunday", "Monday", "Tuesday", "Wednesday",
+X    "Thursday", "Friday", "Saturday" };
+Xstatic char  *Months[] = {
+X    "January", "February", "March", "April", "May", "June",
+X    "July", "August", "September", "October", "November", "December" };
+X
+Xstatic char *fmtdate (ldate, poptstr, pnmod)
+X    time_t          ldate;	/* system date to be formatted */
+X    register char  *poptstr;	/* ptr to format string following %<char> */
+X    int            *pnmod;	/* #of chars "eaten" from format string */
+X{  /* format ldate according to string in pfmt, returning ptr to static area */
+X    struct tm      *localtime();
+X    register struct tm  *ptime;
+X    register char   c, *padate, *pfmt, endc;
+X    int             i;
+X    static char     adate[100];
+X
+X    *pnmod = 0;
+X
+X	/* get components of the system date */
+X    ptime = localtime (&ldate);
+X
+X	/* check for format string */
+X    pfmt = poptstr;
+X    endc = '\0';
+X    if (*pfmt == '\'' || *pfmt == '\"')
+X	endc = *pfmt++;
+X    else if (Use_less)
+X    {
+X	if (ldate < Sixmosago)
+X	    pfmt = "%h %d  19%y";	/* more than 6 mos. old (roughly) */
+X	else
+X	    pfmt = "%h %d %H:%M";	/* less than 6 mos. old */
+X    }
+X    else  /* use default date format (or environment vbl) */
+X	pfmt = Defdatefmt;
+X
+X	/* parse format string */
+X    padate = adate;
+X    while ((c = *pfmt++) != endc && c != '\0')
+X    {
+X	if (c != '%')
+X	{
+X	    *padate++ = c;
+X	    continue;
+X	}
+X	switch (c = *pfmt++)
+X	{
+X	  case '%':	/* "%%" - print a percent sign */
+X	    *padate++ = '%';
+X	    break;
+X
+X	  case 'n':	/* "%n" - print a newline */
+X	    *padate++ = '\n';
+X	    break;
+X
+X	  case 't':	/* "%t" - print a tab */
+X	    *padate++ = '\t';
+X	    break;
+X
+X	  case 'm':	/* "%m" - print month of year (01 to 12) */
+X	    sprintf (padate, "%02d", ptime->tm_mon+1);
+X	    padate += 2;
+X	    break;
+X
+X	  case 'd':	/* "%d" - print day of month (01 to 31) */
+X	    sprintf (padate, "%02d", ptime->tm_mday);
+X	    padate += 2;
+X	    break;
+X
+X	  case 'y':	/* "%y" - print last 2 digits of year (00 to 99) */
+X	    sprintf (padate, "%02d", ptime->tm_year);
+X	    padate += 2;
+X	    break;
+X
+X	  case 'D':	/* "%D" - print date as mm/dd/yy */
+X	    sprintf (padate, "%02d/%02d/%02d",
+X		ptime->tm_mon+1, ptime->tm_mday, ptime->tm_year);
+X	    padate += 8;
+X	    break;
+X
+X	  case 'H':	/* "%H" - print hour (00 to 23) */
+X	    sprintf (padate, "%02d", ptime->tm_hour);
+X	    padate += 2;
+X	    break;
+X
+X	  case 'M':	/* "%M" - print minute (00 to 59) */
+X	    sprintf (padate, "%02d", ptime->tm_min);
+X	    padate += 2;
+X	    break;
+X
+X	  case 'S':	/* "%S" - print second (00 to 59) */
+X	    sprintf (padate, "%02d", ptime->tm_sec);
+X	    padate += 2;
+X	    break;
+X
+X	  case 'T':	/* "%T" - print time as HH:MM:SS */
+X	    sprintf (padate, "%02d:%02d:%02d",
+X		ptime->tm_hour, ptime->tm_min, ptime->tm_sec);
+X	    padate += 8;
+X	    break;
+X
+X	  case 'j':	/* "%j" - print julian date (001 to 366) */
+X	    sprintf (padate, "%03d", ptime->tm_yday+1);
+X	    padate += 3;
+X	    break;
+X
+X	  case 'w':	/* "%w" - print day of week (0 to 6) (0=Sunday) */
+X	    sprintf (padate, "%1d", ptime->tm_wday);
+X	    padate += 1;
+X	    break;
+X
+X	  case 'a':	/* "%a" - print abbreviated weekday (Sun to Sat) */
+X	    sprintf (padate, "%3.3s", Wdays[ptime->tm_wday]);
+X	    padate += 3;
+X	    break;
+X
+X	  case 'W':	/* "%W" - print full weekday (Sunday to Saturday) */
+X	    sprintf (padate, "%s", FWdays[ptime->tm_wday]);
+X	    padate += strlen(FWdays[ptime->tm_wday]);
+X
+X	  case 'h':	/* "%h" - print abbreviated month (Jan to Dec) */
+X	    sprintf (padate, "%3.3s", Months[ptime->tm_mon]);
+X	    padate += 3;
+X	    break;
+X
+X	  case 'F':	/* "%F" - print full month (January to December) */
+X	    sprintf (padate, "%s", Months[ptime->tm_mon]);
+X	    padate += strlen(Months[ptime->tm_mon]);
+X	    break;
+X
+X	  case 'r':	/* "%r" - print time in AM/PM notation */
+X	    i = ptime->tm_hour;
+X	    if (i > 12)
+X		i -= 12;
+X	    sprintf (padate, "%02d:%02d:%02d %2.2s",
+X		i, ptime->tm_min, ptime->tm_sec,
+X		ptime->tm_hour >= 12 ? "PM" : "AM");
+X	    padate += 11;
+X	    break;
+X
+X	  case 'E':	/* "%E" - print day of month with no padding (CFI) */
+X	    sprintf (padate, "%d", ptime->tm_mday);
+X	    padate += (ptime->tm_mday > 9 ? 2 : 1);
+X	    break;
+X
+X	  case 'x':	/* "%x" - print date in system format (#seconds) */
+X	    sprintf (padate, "%ld", (long)ldate);
+X	    padate += strlen (padate);
+X	    break;
+X
+X	  case 'X':	/* "%X" - print date in system format, days only */
+X	    sprintf (padate, "%ld", (long)ldate/(60*60*24));	/* secs/day */
+X	    padate += strlen (padate);
+X	    break;
+X
+X	  default:
+X	    *padate++ = '%';
+X	    *padate++ = c;
+X	    *padate++ = '?';
+X	    break;
+X	}
+X    }
+X
+X    if (c != endc)
+X	fprintf (stderr, "?missing close quote for date format string\n");
+X
+X    *padate = '\0';
+X    if (endc != '\0')		/* need to return #chars in format string */
+X	*pnmod = pfmt - poptstr;
+X    return (&adate[0]);
+X
+X}  /* fmtdate */
+X
+X/******************************************************************************/
+X
+Xstatic char *getpwname (uid)
+X    register int  uid;
+X{  /* get user name from passwd file */
+X    static struct  uids {
+X	int   u_id;
+X	char *u_name;
+X	} uids[MAXUIDS];
+X    static int  nuids=0;
+X    register int  i;
+X    struct passwd  *pw, *getpwuid();
+X
+X    for (i=0; i<nuids; ++i)
+X	if (uids[i].u_id == uid)
+X	    return (uids[i].u_name);
+X
+X    if (nuids == MAXUIDS)
+X    {
+X	fprintf (stderr, "?too many user names (max=%d)\n", MAXUIDS);
+X	return ((char *)NULL);
+X    }
+X
+X	/* add new user name */
+X    uids[nuids].u_id = uid;
+X    if ((pw = getpwuid(uid)) == (struct passwd *)NULL)
+X	uids[nuids].u_name = (char *)NULL;
+X    else
+X	uids[nuids].u_name = copystr (pw->pw_name);
+X    return (uids[nuids++].u_name);
+X
+X}  /* getpwname */
+X
+X/******************************************************************************/
+X
+Xstatic char *getgrname (gid)
+X    register int  gid;
+X{  /* get user group name from group file */
+X    static struct gids {
+X	int   g_id;
+X	char *g_name;
+X	} gids[MAXGIDS];
+X    static int    ngids=0;
+X    register int  i;
+X    struct group *gr, *getgrgid();
+X
+X    for (i=0; i<ngids; ++i)
+X	if (gids[i].g_id == gid)
+X	    return (gids[i].g_name);
+X
+X    if (ngids == MAXGIDS)
+X    {
+X	fprintf (stderr, "?too many group names (max=%d)\n", MAXGIDS);
+X	return ((char *)NULL);
+X    }
+X
+X	/* add new group name */
+X    gids[ngids].g_id = gid;
+X    if ((gr = getgrgid(gid)) == (struct group *)NULL)
+X	gids[ngids].g_name = (char *)NULL;
+X    else
+X	gids[ngids].g_name = copystr (gr->gr_name);
+X    return (gids[ngids++].g_name);
+X
+X}  /* getgrname */
+X
+X/******************************************************************************/
+X
+Xstatic char *copystr (str)
+X    char  *str;
+X{  /* Allocate space for a string, copy it, and return ptr to new space */
+X    char  *p;
+X    int    i;
+X    
+X    i = strlen(str) + 1;
+X    p = (char *) malloc ((unsigned) i);
+X    if (p != (char *)NULL)
+X	strcpy (p, str);
+X    return (p);
+X
+X}  /* copystr */
+X
+X/******************************************************************************/
+X
+Xstatic time_t getsixmosago ()
+X{  /* Calculate the system date for 6 months ago */
+X    register int   i, ndays, month, year;
+X    time_t         today;
+X    struct tm     *now;
+X    
+X    today = time ((time_t *)NULL);
+X    now = localtime (&today);
+X    month = now->tm_mon + 1;	/* tm_mon is 0-11 */
+X    year = now->tm_year;
+X    ndays = 0;
+X    for (i=1; i<=6; ++i)
+X    {
+X	if (--month < 1)	/* starts with last month */
+X	{
+X	    month = 12;
+X	    year--;
+X	}
+X	switch (month)
+X	{
+X	case 1:		/* Jan */
+X	case 3:		/* Mar */
+X	case 5:		/* May */
+X	case 7:		/* Jul */
+X	case 8:		/* Aug */
+X	case 10:	/* Oct */
+X	case 12:	/* Dec */
+X	    ndays += 31;
+X	    break;
+X	case 4:		/* Apr */
+X	case 6:		/* Jun */
+X	case 9:		/* Sep */
+X	case 11:	/* Nov */
+X	    ndays += 30;
+X	    break;
+X	case 2:		/* Feb */
+X	    if ((year%4) == 0 && (year%100) != 0)
+X		ndays += 29;
+X	    else
+X		ndays += 28;
+X	    break;
+X	}
+X    }
+X
+X    return (today - (60*60*24*ndays));
+X
+X}  /* getsixmosago */
+END_OF_sls.c
+if test 34005 -ne `wc -c <sls.c`; then
+    echo shar: \"sls.c\" unpacked with wrong size!
+fi
+# end of overwriting check
+fi
+if test -f Makefile -a "${1}" != "-c" ; then 
+  echo shar: Will not over-write existing file \"Makefile\"
+else
+echo shar: Extracting \"Makefile\" \(176 characters\)
+sed "s/^X//" >Makefile <<'END_OF_Makefile'
+XBIN= /usr/local/bin
+XMAN= /usr/local/man/man1
+XCFLAGS= -O
+X
+Xsls:	sls.o
+X	cc sls.o -o sls
+X
+Xinstall: sls
+X	rm -f $(BIN)/sls
+X	strip sls
+X	mv sls $(BIN)
+X	cp sls.1 $(MAN)
+X
+Xclean:
+X	rm *.o
+END_OF_Makefile
+if test 176 -ne `wc -c <Makefile`; then
+    echo shar: \"Makefile\" unpacked with wrong size!
+fi
+# end of overwriting check
+fi
+echo shar: End of shell archive.
+exit 0
+
+-- 
+Please send comp.sources.unix-related mail to rsalz@uunet.uu.net.
