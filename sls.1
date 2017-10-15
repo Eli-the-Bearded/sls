@@ -1,0 +1,384 @@
+.TH SLS 1 "7 March 1989"
+.SH NAME
+sls \- list information about file(s) and directories
+.SH SYNOPSIS
+.B sls
+[
+.B \-adlpsuLR
+] \fIfilename\fR .\|.\|.
+.SH DESCRIPTION
+.I Sls
+is a program designed to overcome the limitations of the standard UNIX
+.I ls(1)
+program, providing a more consistent interface to file inode information.
+It is particularly designed for use by shell scripts to make obtaining
+information about files easier.  It uses
+.IR printf(3) -style
+format strings to control the sorting and output of file information.
+.LP
+Advantages of
+.I sls
+over
+.IR ls\^ :
+.IP \(bu 3
+Allows complete specification of the output contents \(em field (column) order,
+field widths, right/left justification, and zero-fill.
+.IP \(bu
+Allows complete specification of the sort order independently of the output
+options \(em output can be sorted on one or more fields.
+.IP \(bu
+Has consistent, user-definable file date formats \(em
+.IR ls 's
+are inconsistent and hard to parse (the seconds are never displayed, the year
+is shown instead of the time for files more than 6 months old, etc.).
+.IP \(bu
+Has ``normalized'' output (no summary lines or changing formats).
+.IP \(bu
+Allows specification of delimiter char(s) \(em the characters between fields
+\(em which makes the output easier to parse in shell scripts.
+.IP \(bu
+Won't stat files if it's not necessary (e.g., ``\f(CWsls <dir>\fR''); in the
+trivial (but common) case of calling
+.I sls
+on a directory (or list of directories) with no options, it will simply
+read the directory file and display the file names, sorted alphabetically.
+For very large directories, this is \fImuch\fR faster than
+.IR ls ,
+and gets around command line limitations of the various login shells when using
+.IR echo(1) .
+.SH OPTIONS
+.TP
+.B \-a
+List all entries; in the absence of this option, entries whose
+names begin with a `\fB.\fR' are not listed.
+.TP
+.B \-d
+If argument is a directory, list only its name (not its contents).
+.TP
+.BI \-p " outputstr"
+Set the list of output fields according to the
+.IR printf -style
+.I outputstr
+(see "SORT AND OUTPUT OPTIONS", below).
+.TP
+.B \-l
+Perform long-form output according to default format (
+.IR ls -style)
+or environment variable SLS_LONGFMT, if set.  This effectively sets the
+.B \-p
+option string to a predefined value, providing a convenient shorthand for
+a detailed listing.
+.TP
+.BI \-s " sortstr"
+Sets the sort order according to the
+.IR printf -style
+.I sortstr
+(see "SORT AND OUTPUT OPTIONS", below).
+.TP
+.B \-u
+Sets the default display format for file dates to be the same as
+.I ls
+(``\f(CWMmm dd HH:MM\fR'' for newer files, ``\f(CWMmm dd yyyy\fR''
+for older files).
+.TP
+.B \-L
+If argument is a symbolic link, list the file or directory the
+link references rather than the link itself.
+.TP
+.B \-R
+Recursively list subdirectories encountered.
+.SH "SORT AND OUTPUT OPTIONS"
+.LP
+The option strings supplied with the
+.B \-s
+and
+.B \-p
+options determine the sort order and output format of the listing.  The option
+string is a single argument consisting of two types of objects:
+plain characters, which are simply copied to the output stream, and
+conversion specifications, each of which causes a particular member (or
+.IR field\^ )
+of the
+.IR stat\^(2)
+structure to be sorted or printed.  (The correspondence is not quite one-to-one,
+but it's close.)  Plain characters and field widths in the sort option string
+are ignored.
+.LP
+Each conversion specification is introduced by the character
+.B %
+(unless two appear together, in which case a single one is output).  After the
+.BR % ,
+any of the following may appear in sequence:
+.RS
+.PP
+An optional `\-' flag: for the
+.B \-p
+option, it specifies left-adjustment for string-type fields (no effect on
+numeric fields); for the
+.B \-s
+option, it means reverse the sort order on this field.
+.PP
+An optional decimal digit string specifying a minimum
+.I "field width"
+.RB ( \-p
+option only).  If the converted value has fewer characters than the field
+width, it will be padded on the left (or right, if the left-adjustment flag
+has been given) to the field width.  If the converted value has more characters
+than the field width, the field width will be ignored.  If the digit string
+has a leading ``0'', numeric-type fields will be zero-filled on the left to
+the width of the field.
+.PP
+A (required) flag character, which results in the conversion of a field from the
+.I stat
+structure for each file.  Some
+flag characters may be followed by optional modifier character(s).  Each flag
+character has a default field width and format.  The flag characters and their
+meanings are:
+.TP 5
+.PD 0
+.B a
+last access date.  This can be followed by a quoted date format string
+(see "DATE FORMAT STRINGS", below).  If no date format string is supplied, the
+default format shows the time \fIand\fR year; this can be overridden by setting
+the SLS_DATEFMT environment variable to a suitable date format string.
+.TP
+.B b
+number of allocated (512-byte) blocks; optionally followed by one of
+.B mkc
+to specify output in \fBm\fRegabytes, \fBk\fRilobytes, or \fBc\fRharacters (the
+default).
+.TP
+.B c
+inode change date.  This can be followed by a quoted date format string
+(see "DATE FORMAT STRINGS", below).  If no date format string is supplied, the
+default format shows the time \fIand\fR year; this can be overridden by setting
+the SLS_DATEFMT environment variable to a suitable date format string.
+.TP
+.B d
+device number the inode resides on.
+.TP
+.B g
+ascii group name of the owner of the file.
+.TP
+.B G
+numeric group number of the owner of the file.
+.TP
+.B i
+inode number of the file.
+.TP
+.B k
+optimal file system block size.
+.TP
+.B l
+number of hard links.
+.TP
+.B m
+last modify date.  This can be followed by a quoted date format string
+(see "DATE FORMAT STRINGS", below).  If no date format string is supplied, the
+default format shows the time \fIand\fR year; this can be overridden by setting
+the SLS_DATEFMT environment variable to a suitable date format string.
+.TP
+.B n
+file name; optionally followed by one or more of
+.BR abs :
+.B a
+to specify ascii output of non-printing chars;
+.B b
+to specify basename only (i.e., file name w/o leading directory path, if any);
+and
+.B s
+to specify a filetype suffix \(em this marks directories with a trailing slash
+(\fB/\fR), executable files with a trailing asterisk (\fB*\fR), symbolic links
+with a trailing at-sign (\fB@\fR), and 
+.SM AF_UNIX
+domain sockets with a trailing equals sign (\fB=\fR).
+.TP
+.B N
+file name, with symbolic links' linked-to file name shown as ``\-> name''.
+.TP
+.B p
+ascii permissions (same as in
+.IR ls\^ ).
+.TP
+.B P
+octal permissions.
+.TP
+.B r
+device number that the file resides on.
+.TP
+.B s
+file size; optionally followed by one of
+.B mkc
+to specify output in \fBm\fRegabytes, \fBk\fRilobytes, or \fBc\fRharacters
+(the default).
+.TP
+.B t
+file type (same as in
+.IR ls\^ ).
+.TP
+.B u
+ascii user name of the owner of the file.
+.TP
+.B U
+numeric user id of the owner of the file.
+.RE
+.PD
+.SH DATE FORMAT STRINGS
+.LP
+The
+.BR a ,
+.BR c ,
+and
+.B m
+flag characters use a default format of \f(CWMmm dd yyyy HH:MM\fR
+(``\f(CW%h %d 19%y %H:%M\fR'').  This can be changed by setting the SLS_DATEFMT
+environment variable to a suitable date format string; by specifying the
+.B \-u
+command line option, which requests
+.IR ls -style
+dates; or by following the flag character with a quoted format string of the
+type used by
+.IR date(1)
+(with several extensions; see below).  (Note that either single or double quotes
+.I must
+delimit the date format string in the
+.B \-p
+option string, so use your shell's particular syntax for embedded quotes.)
+.LP
+The date format string may contain plain characters, which are copied to the
+output, or any of the following format modifier characters (preceded by a `%'):
+.RS
+.PD 0
+.TP
+.B %
+print a percent sign.
+.TP
+.B a
+print abbreviated weekday (Sun to Sat).
+.TP
+.B d
+print day of month (01 to 31).
+.TP
+.B h
+print abbreviated month (Jan to Dec).
+.TP
+.B j
+print julian date (001 to 366).
+.TP
+.B m
+print month of year (01 to 12).
+.TP
+.B n
+print a newline.
+.TP
+.B r
+print time in AM/PM notation (``HH:MM:SS ?M'').
+.TP
+.B t
+print a tab.
+.TP
+.B w
+print day of week (0 to 6) (0=Sunday).
+.TP
+.B x
+print date in system format (number of seconds since the epoch).
+.TP
+.B y
+print last 2 digits of year (00 to 99).
+.TP
+.B D
+print date as mm/dd/yy.
+.TP
+.B E
+print day of month with no padding for single-digit dates.
+.TP
+.B F
+print full month (January to December).
+.TP
+.B H
+print hour (00 to 23).
+.TP
+.B M
+print minute (00 to 59).
+.TP
+.B S
+print second (00 to 59).
+.TP
+.B T
+print time as HH:MM:SS.
+.TP
+.B W
+print full weekday (Sunday to Saturday).
+.TP
+.B X
+print date in system format, using the number of days only (divides seconds
+by 86,400).
+.PD
+.RE
+.SH EXAMPLES
+.LP
+To produce the same output as ``ls \-l'':
+.PP
+\f(CWsls \-u \-p '%t%p %2l %-u %s %m %N'\fR
+.LP
+To list the size (in kbytes), access and modify dates (no times), and file names
+(no pathname), sorted by size (largest first):
+.PP
+\f(CWsls \-s %-s \-p '%sk  %a"%h %d 19%y"  %m"%h %d 19%y"  %nb' /usr/mydir\fR
+.LP
+How a shell script might get the last-modify date on a file with
+.I sls
+vs.
+.I ls
+(assume that \f(CWSLS_DATEFMT="%h %d %H:%M"\fR; remember that you have no
+control over the time vs. year field with
+.IR ls ):
+.PP
+\f(CWFILEDATE=`ls \-l file | awk '{print $5,$6,$7}'`\fR
+.br
+\f(CWFILEDATE=`sls \-p %m file`\fR
+.SH FILES
+/etc/passwd 	to get user names for \fB%u\fR output format flag.
+.br
+/etc/group 	to get group names for \fB%g\fR output format flag.
+.SH BUGS
+.LP
+It is impossible to distinguish between two files with the same name in two
+different directories with the
+.B %nb
+output format flag.
+.LP
+There are several features of the ``standardized output'' nature of
+.I sls
+that are incompatible with
+.IR ls ,
+and may cause some initial confusion; these are mentioned below.
+.LP
+The default alignment for string-valued fields (right-justified) does not match
+.IR ls ,
+but is consistent with the C library function
+.I printf
+(which uses the ``\-'' option flag to specify left-justification).
+.LP
+.I sls
+does not automatically eliminate the directory part of the file name in the
+listing when supplied with a single directory name argument; the user must
+explicitly request that with the
+.B %nb
+output format flag.
+.LP
+The symbolic link notation ``linkname \-> name'' that
+.I ls
+automatically provides with
+.B \-l
+output must also be explicitly requested by the user with the
+.B %N
+output format flag.
+.LP
+.I Sls
+has no multi-column output capability.
+.LP
+The default format for dates in
+.I sls
+displays both the time and year, resulting in wider output (see ``DATE
+FORMAT STRINGS'' section for information on overriding this default).
