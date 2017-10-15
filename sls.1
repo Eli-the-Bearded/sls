@@ -1,4 +1,4 @@
-.TH SLS 1 "7 March 1989"
+.TH SLS 1 "10 June 1997"
 .SH NAME
 sls \- list information about file(s) and directories
 .SH SYNOPSIS
@@ -180,9 +180,13 @@ the SLS_DATEFMT environment variable to a suitable date format string.
 .TP
 .B n
 file name; optionally followed by one or more of
-.BR abs :
+.BR aMHbs :
 .B a
-to specify ascii output of non-printing chars;
+to specify octal encoded ascii output of non-printing chars;
+.B M
+to specify MIME style encoding of non-printing and MIME special chars.
+.B H
+to specify HTTP style encoding of non-printing and HTTP special chars.
 .B b
 to specify basename only (i.e., file name w/o leading directory path, if any);
 and
@@ -208,9 +212,11 @@ device number that the file resides on.
 .TP
 .B s
 file size; optionally followed by one of
-.B mkc
-to specify output in \fBm\fRegabytes, \fBk\fRilobytes, or \fBc\fRharacters
-(the default).
+.B mkca
+to specify output in \fBm\fRegabytes, \fBk\fRilobytes, \fBc\fRharacters
+(the default), or \fBa\fRutosize. The latter displays the file size in
+the largest unit which does not have to be rounded up to one and appends
+a ``m'', ``k'', or ``c'' as appropriate.
 .TP
 .B t
 file type (same as in
@@ -221,6 +227,9 @@ ascii user name of the owner of the file.
 .TP
 .B U
 numeric user id of the owner of the file.
+.TP
+.B \!
+no-op. Useful for disarming suffix modifiers.
 .RE
 .PD
 .SH DATE FORMAT STRINGS
@@ -231,7 +240,7 @@ The
 and
 .B m
 flag characters use a default format of \f(CWMmm dd yyyy HH:MM\fR
-(``\f(CW%h %d 19%y %H:%M\fR'').  This can be changed by setting the SLS_DATEFMT
+(``\f(CW%h %d %Y %H:%M\fR'').  This can be changed by setting the SLS_DATEFMT
 environment variable to a suitable date format string; by specifying the
 .B \-u
 command line option, which requests
@@ -255,6 +264,11 @@ print a percent sign.
 .TP
 .B a
 print abbreviated weekday (Sun to Sat).
+.TP
+.B b
+print abbreviated month (Jan to Dec). (For Gnu
+.IR date(1)
+compatibility.)
 .TP
 .B d
 print day of month (01 to 31).
@@ -313,6 +327,9 @@ print full weekday (Sunday to Saturday).
 .B X
 print date in system format, using the number of days only (divides seconds
 by 86,400).
+.TP
+.B Y
+print the full year.
 .PD
 .RE
 .SH EXAMPLES
@@ -324,7 +341,13 @@ To produce the same output as ``ls \-l'':
 To list the size (in kbytes), access and modify dates (no times), and file names
 (no pathname), sorted by size (largest first):
 .PP
-\f(CWsls \-s %-s \-p '%sk  %a"%h %d 19%y"  %m"%h %d 19%y"  %nb' /usr/mydir\fR
+\f(CWsls \-s %-s \-p '%sk  %a"%h %d %Y"  %m"%h %d %Y"  %nb' /usr/mydir\fR
+.LP
+An example with
+.I sls
+producing output ready to embed in an HTML document:
+.PP
+\f(CWsls \-p '<LI><A HREF="%nHb">%nb</A> Size: %2sa Date: %m"%m/%d/%Y"' /usr/mydir\fR
 .LP
 How a shell script might get the last-modify date on a file with
 .I sls
@@ -382,3 +405,21 @@ The default format for dates in
 .I sls
 displays both the time and year, resulting in wider output (see ``DATE
 FORMAT STRINGS'' section for information on overriding this default).
+.PP
+The only special attention given to HP-UX
+cdfs or "hidden" files/directories
+(see
+.B cdf(4)
+for more information).
+They are displayed without the trailing "+" and are
+not at all hidden from
+.I sls
+\&.
+.SH AUTHOR
+.I Sls
+was originally written by Rich Baughman <rich@cfi.com>. That address no
+longer seems to work. This copy of
+.I sls
+has had several changes made by Eli-the-Bearded <info@qaz.wtf>.
+The original
+revision date on this manpage was 7 March 1989 when Eli got the source.

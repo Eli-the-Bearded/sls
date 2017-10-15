@@ -14,8 +14,19 @@
  *
  * Uses environment vbl SLS_DATEFMT as default format string for dates, if
  * supplied.
+ *
+ * Original author Rich Baughman <rich@cfi.com>. As of this writing (June
+ * 1997) that address does not work. Many modificiations, most minor, by
+ * Eli the Bearded <info@qaz.wtf>.
+ *
+ * Fixes by Eli: Solaris (at least) uses dirent.h instead of sys/dir.h
+ * edit sls-conf.h to setup the defines for your system. Year 2000 problem
+ * in date format fixed. Instead of hard coding a 19 in, a Gnu date(1)ish
+ * %Y added.  Start towards some obscure non-standard file types found
+ * in Solaris and HPUX. Start towards a more GNU date'ish date format.
  */
 
+#include "sls-conf.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -24,10 +35,15 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef NEED_DIRENT
+#include <dirent.h>
+#endif /* NEED_DIRENT */
+#ifdef NEED_SYS_DIR
 #include <sys/dir.h>
+#endif /* NEED_SYS_DIR */
 
 #define ISEXEC(m)	(m & (S_IEXEC|(S_IEXEC>>3)|(S_IEXEC>>6)))
-#define MAXUIDS		200	/* max #of user names from passwd file */
+#define MAXUIDS		8000	/* max #of user names from passwd file */
 #define MAXGIDS		100	/* max #of group names from group file */
 
     /* defines for sort/print option strings (preceded by a '%'); keys can
@@ -46,6 +62,7 @@
 #define F_MDATE		'm'	/* modify date (optional fmtdate string) */
 #define F_NAME		'n'	/* file name (+ b=basename,a=ascii,s=suffix) */
 #define F_NAMEL		'N'	/* file name with symbolic links shown */
+#define F_NOOP		'!'	/* no-op. Useful for '%n%!a-literal-a' */
 #define F_PERMA		'p'	/* ascii permissions */
 #define F_PERMO		'P'	/* octal permissions */
 #define F_RDEV		'r'	/* device number file resides on */
@@ -90,6 +107,8 @@ extern char  *getenv(), *malloc(), *realloc();
 extern int    errno;
 extern time_t time();
 
+char ident[] = "@(#)super ls by Rich Baughman with Eli-the-Bearded mods";
+
 /******************************************************************************/
 
 main (ac, av)
@@ -102,7 +121,7 @@ main (ac, av)
     gotfilearg = 0;
     Sortopt = "%n";
     Printopt = "%n";
-    Defdatefmt = "%h %d 19%y %H:%M";
+    Defdatefmt = "%h %d %Y %H:%M";
     if ((pav = getenv("SLS_DATEFMT")) != NULL && strlen(pav) > 0)
 	Defdatefmt = copystr (pav);
     longfmt = "%t%p %2l %-u %s %m %n";
@@ -165,6 +184,9 @@ main (ac, av)
 		break;
 	    default:
 		fprintf (stderr, "?unknown option '%s'\n", pav);
+		fprintf (stderr, "Usage:\n");
+		fprintf (stderr, "sls [ -adlp (options) s ");
+		fprintf (stderr, "(options) uLR ] filename ...\n");
 		exit (1);
 	    }
 	}
@@ -176,7 +198,7 @@ main (ac, av)
     }
 
     if (!gotfilearg)
-	dofile ("", 1);
+	dofile (".", 1);
 
     if (!Dostat)
     {
@@ -217,6 +239,7 @@ dofile (fname, cmdarg)
 {  /* check if file should be displayed (read contents if a directory) */
     struct stat     sbuf;
     register char  *pbase;	/* ptr to basename part of fname */
+    char	    dupfname[513];
 
     if ((pbase = strrchr (fname, '/')) == (char *)NULL)
 	pbase = fname;
@@ -236,9 +259,17 @@ dofile (fname, cmdarg)
     if ((!Follow_links && lstat (fname, &sbuf) != 0)
 	|| (Follow_links && stat (fname, &sbuf) != 0))
     {
+	strcpy(dupfname,fname);
+	strcat(dupfname,"+");
+	if ((!Follow_links && lstat(dupfname, &sbuf) != 0)
+	|| (Follow_links && stat (dupfname, &sbuf) != 0))
+	{
+/* GREP FLAG grep flag */ /* GREP FLAG grep flag */ /* GREP FLAG grep flag */ 
+/* strcat(3c) */
 	fprintf (stderr, "?unable to stat file '%s' (errno=%d)\n",
 	    fname, errno);
 	return;
+	} else strcat(fname,"+"); /* HPUX hidden file/directory */
     }
 
     if ((sbuf.st_mode&S_IFMT) == S_IFDIR)	/* it's a directory */
@@ -271,17 +302,29 @@ dirread (dirname)
     char           *dirname;
 {  /* read a directory and everything under it that's on the same device */
     register DIR   *dirp;		/* ptr to directory list */
+#ifdef USE_DIRENT
+    register struct dirent  *dentp;	/* ptr to directory entry */
+#else
     register struct direct  *dentp;	/* ptr to directory entry */
+#endif
     register char  *pfname;
     register int    len;
     char            fname[512];		/* maximum pathname length */
+    char	    dupdirname[513];
 
 	/* open and read a directory */
     if ((dirp = opendir(dirname)) == NULL)
     {
+	strcpy(dupdirname,dirname);
+	strcat(dupdirname,"+");
+	if ((dirp = opendir(dupdirname)) == NULL)
+	{
+/* GREP FLAG grep flag */ /* GREP FLAG grep flag */ /* GREP FLAG grep flag */ 
+/* strcat(3c) */
 	fprintf (stderr, "?unable to open directory '%s' (errno=%d)\n",
-	    dirname, errno);
+	  dirname, errno);
 	return;
+	} else strcat(dirname,"+"); /* HPUX hidden file/directory */
     }
     strcpy (fname, dirname);
     len = strlen(fname);
@@ -296,7 +339,11 @@ dirread (dirname)
 	/* loop through directory entries */
     for (dentp = readdir(dirp); dentp != NULL; dentp = readdir(dirp))
     {
+#ifdef USE_DIRENT
+	if (len + strlen(dentp->d_name) >= sizeof(fname))
+#else
 	if (len + dentp->d_namlen >= sizeof(fname))
+#endif
 	{
 	    *pfname = '\0';	/* so we don't see previous filename part */
 	    fprintf (stderr, "?file name too long: '%s%s'\n",
@@ -529,11 +576,15 @@ static int sortsfile (pf1, pf2)
 	case F_NAME:
 	case F_NAMEL:
 	    ascii = basen = 0;
-	    while (*(ps+1) && strchr("abs",*(ps+1)) != NULL)
+	    while (*(ps+1) && strchr("HMabs",*(ps+1)) != NULL)
 	    {
 		++ps;
 		if (*ps == 'a')
-		    ascii = 1;
+		    ascii = 1; /* \ddd notation for non-printing */
+		else if (*ps == 'H')
+		    ascii = 2; /* %XX notation for HTTP specials */
+		else if (*ps == 'M')
+		    ascii = 3; /* =XX notation for = and non-printing */
 		else if (*ps == 'b')
 		    basen = 1;
 		else if (*ps == 's')	/* ignored for sort purposes */
@@ -557,11 +608,13 @@ static int sortsfile (pf1, pf2)
 	    }
 	    if (ascii)	/* show non-printing chars */
 	    {
-		strcpy (tbuf1, showname (p1));
-		strcpy (tbuf2, showname (p2));
+		strcpy (tbuf1, showname (p1,ascii));
+		strcpy (tbuf2, showname (p2,ascii));
 		p1 = tbuf1;
 		p2 = tbuf2;
 	    }
+	    break;
+	case F_NOOP:
 	    break;
 	default:
 	    fprintf (stderr, "?unknown sort option char '%%%c'\n", *ps);
@@ -647,7 +700,7 @@ display (pf)
 	    case S_IFLNK:	ptmp = "l"; break;
 	    case S_IFSOCK:	ptmp = "s"; break;
 	    case S_IFIFO:	ptmp = "p"; break;
-	    default:
+	    default: /* grep GREP add various new types for Solaris */
 		ptmp = "?";
 		fprintf (stderr, "?unknown file type 0%o for file '%s'\n",
 		    psbuf->st_mode & S_IFMT, fname);
@@ -740,7 +793,28 @@ display (pf)
 	    break;
 	case F_SIZE:
 	    l = (long) psbuf->st_size;
-	    if (*(popt+1) == 'm')
+	    if (*(popt+1) == 'a')
+	    {
+		int shift;
+
+		fmtstr = getfmtstr ('d', (fwid?fwid:3), leftjust, zerofill);
+		if (l<1024) {
+		   shift=0;
+		   pc="c";
+		} else
+		if (l<1048576) {
+		   shift=10;
+		   pc="k";
+		} else {
+		   shift=20;
+		   pc="m";
+		}
+		sprintf (pobuf, fmtstr, (l >>shift));
+		++popt;
+		strcat (pobuf, pc);
+	        pc="";
+	    }
+	    else if (*(popt+1) == 'm')
 	    {
 		fmtstr = getfmtstr ('d', (fwid?fwid:3), leftjust, zerofill);
 		sprintf (pobuf, fmtstr, (l+1048575)>>20);
@@ -826,11 +900,15 @@ display (pf)
 	case F_NAME:
 	case F_NAMEL:
 	    ascii = basen = suffix = 0;
-	    while (*(popt+1) && strchr ("abs", *(popt+1)) != NULL)
+	    while (*(popt+1) && strchr ("MHabs", *(popt+1)) != NULL)
 	    {
 		++popt;
 		if (*popt == 'a')
-		    ascii = 1;
+		    ascii = 1; /* \ddd notation for non-printing */
+		else if (*popt == 'H')
+		    ascii = 2; /* %XX notation for HTTP specials */
+		else if (*popt == 'M')
+		    ascii = 3; /* =XX notation for = and non-printing */
 		else if (*popt == 'b')
 		    basen = 1;
 		else if (*popt == 's')
@@ -846,7 +924,7 @@ display (pf)
 	    else
 		ptmp = fname;
 	    if (ascii)	/* show non-printing chars */
-		ptmp = showname (ptmp);
+		ptmp = showname (ptmp,ascii);
 	    pc = "";
 	    if (suffix)
 	    {	/* add trailing type char for some files */
@@ -882,6 +960,7 @@ display (pf)
 	    }
 	    if (*pc)
 	    {  /* add type-char to end of filename */
+#if 0
 		for (ptmp=pobuf; *ptmp; ++ptmp)
 		{
 		    if (*ptmp == ' ')
@@ -892,8 +971,11 @@ display (pf)
 		    }
 		}
 		if (*pc)  /* didn't find a space to add it, so add it to end */
+#endif
 		    strcat (pobuf, pc);
 	    }
+	    break;
+	case F_NOOP:
 	    break;
 	default:
 	    fprintf (stderr, "?unknown print option '%%%c'\n", *popt);
@@ -971,7 +1053,7 @@ static char  *aperms (mode, poptstr, pnmod)
 	if (i == 0 && (mode & S_ISUID))
 	    *pbuf = (*pbuf == 'x' ? 's' : 'S');
 	else if (i == 1 && (mode & S_ISGID))
-	    *pbuf = (*pbuf == 'x' ? 's' : 'S');
+	    *pbuf = (*pbuf == 'x' ? 's' : 'S'); /* grep GREP S is l Solaris */
 	else if (i == 2 && (mode & S_ISVTX))
 	    *pbuf = (*pbuf == 'x' ? 't' : 'T');
 	++pbuf;
@@ -991,19 +1073,67 @@ static char  *aperms (mode, poptstr, pnmod)
 
 /******************************************************************************/
 
-static char *showname (fname)
+static char *showname (fname,style)
     register char  *fname;
-{  /* show non-printing chars in a filename as \ddd */
+              int  style;
+{  /* if style==1 show non-printing chars in a filename as \ddd
+      if style==2 show HTTP special chars in a filename as %XX
+      if style==3 show MIME special chars in a filename as =XX
+    */
     static char     newname[200];
     register char  *pnew;
 
     for (pnew=newname; *fname; ++fname,++pnew)
     {
-	if (isprint(*pnew = *fname))
-	    continue;
-	sprintf (pnew, "\\%03o", *fname);
-	pnew += strlen(pnew) - 1;
-    }
+	switch(style) {
+	  case 1:
+	    if (isprint(*pnew = *fname))
+	      continue;
+	    sprintf (pnew, "\\%03o", *fname);
+	    pnew += strlen(pnew) - 1;
+            break;
+	  case 2:
+	    if (isprint(*pnew = *fname)) {
+              switch(*fname) {
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
+                case '"':
+                case '+':
+                case '%':
+                case '~':
+		  sprintf (pnew, "%%%02x", *fname);
+		  pnew += strlen(pnew) - 1;
+		  break;
+                default:
+		  continue;
+              }
+	    } else {
+	      sprintf (pnew, "%%%02x", *fname);
+	      pnew += strlen(pnew) - 1;
+	    }
+	    break;
+	  case 3:
+	    if (isprint(*pnew = *fname)) {
+              switch(*fname) {
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
+                case '=':
+		  sprintf (pnew, "=%02x", *fname);
+		  pnew += strlen(pnew) - 1;
+		  break;
+                default:
+		  continue;
+              }
+	    } else {
+	      sprintf (pnew, "=%02x", *fname);
+	      pnew += strlen(pnew) - 1;
+	    }
+          } /* switch(style) */
+      } /* for loop */
     *pnew = '\0';
 
     return (newname);
@@ -1045,7 +1175,7 @@ static char *fmtdate (ldate, poptstr, pnmod)
     else if (Use_less)
     {
 	if (ldate < Sixmosago)
-	    pfmt = "%h %d  19%y";	/* more than 6 mos. old (roughly) */
+	    pfmt = "%h %d  %Y";		/* more than 6 mos. old (roughly) */
 	else
 	    pfmt = "%h %d %H:%M";	/* less than 6 mos. old */
     }
@@ -1086,8 +1216,15 @@ static char *fmtdate (ldate, poptstr, pnmod)
 	    break;
 
 	  case 'y':	/* "%y" - print last 2 digits of year (00 to 99) */
-	    sprintf (padate, "%02d", ptime->tm_year);
+	    /* tm_year  - the number of years since 1900.   */
+	    sprintf (padate, "%02d", (ptime->tm_year)%100 );
 	    padate += 2;
+	    break;
+
+	  case 'Y':	/* "%Y" - print year (used by Gnu date, at least) */
+	    /* tm_year  - the number of years since 1900.   */
+	    sprintf (padate, "%04d", 1900 + ptime->tm_year);
+	    padate += 4;
 	    break;
 
 	  case 'D':	/* "%D" - print date as mm/dd/yy */
@@ -1136,6 +1273,7 @@ static char *fmtdate (ldate, poptstr, pnmod)
 	    sprintf (padate, "%s", FWdays[ptime->tm_wday]);
 	    padate += strlen(FWdays[ptime->tm_wday]);
 
+	  case 'b':     /* Used by Gnu date (at least) for the same option */
 	  case 'h':	/* "%h" - print abbreviated month (Jan to Dec) */
 	    sprintf (padate, "%3.3s", Months[ptime->tm_mon]);
 	    padate += 3;
@@ -1320,3 +1458,4 @@ static time_t getsixmosago ()
     return (today - (60*60*24*ndays));
 
 }  /* getsixmosago */
+

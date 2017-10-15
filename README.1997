@@ -1,0 +1,50 @@
+This program provides another shell interface to the stat(2) information
+normally provided by the Unix ls(1) program.  This archive contains the
+following files:
+
+    README	- this file
+    sls.c	- source
+    sls-conf.h  - configuration file
+    sls.1	- man page
+    Makefile	- for make(1)
+
+Edit sls-conf.h to select a #define template for your system. Then try
+"make" to build the program and try it out. Define $(BIN), $(MAN) and
+type "make install" to install it. 
+
+NOTE: this was originally written for SunOS 3.5 and has only been compiled
+and test on a a few platforms since. Some of the templates are feedback
+from other users of the program and have not been tested by me. I have
+tested the SunOS, Solaris, and Linux templates.
+
+Below is part of the man page to help convert you to the cause. :^)
+
+NAME
+     sls - list information about file(s) and directories
+
+SYNOPSIS
+     sls [ -adlpsuLR ] filename ...
+
+DESCRIPTION
+     Sls is a program designed to overcome the limitations of the
+     standard  UNIX  ls(1)  program,  providing a more consistent
+     interface to file inode  information.   It  is  particularly
+     designed for use by shell scripts to make obtaining informa-
+     tion about files easier.   It  uses  printf(3)-style  format
+     strings  to  control the sorting and output of file informa-
+     tion.
+
+
+Comments from the original author's README from years ago:
+  Feel free to send me bug and portability fixes, comments, and enhancements
+  (but watch out for "creeping featurism").  No flames, please - "You get
+  what you pay for."
+
+  Enjoy!
+
+  Rich Baughman		  rich@cfi.com OR ima!cfisun!rich
+  Price Waterhouse/CFI      Waltham, MA  617-899-6500
+
+Elijah
+------
+info@qaz.wtf
